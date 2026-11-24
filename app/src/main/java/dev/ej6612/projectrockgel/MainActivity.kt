@@ -139,8 +139,7 @@ fun AppContent(
 
             composable(ROUTE_VENDORS) {
                 VendorsScreen(
-                    viewModel = vendorsViewModel,
-                    availableChecklists = checklistsViewModel.checklists
+                    viewModel = vendorsViewModel
                 )
             }
             composable(ROUTE_CHECKLISTS) {
