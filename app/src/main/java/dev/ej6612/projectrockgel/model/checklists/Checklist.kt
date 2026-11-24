@@ -43,28 +43,3 @@ data class ChecklistWithItems(
     )
     val items: List<ChecklistItem>
 )
-
-// DAO is kept here alongside Checklist
-@Dao
-interface ChecklistDao {
-
-    // Flow emits a new list whenever checklists or their items change.
-    @Transaction
-    @Query("SELECT * FROM checklists ORDER BY title ASC")
-    fun observeChecklists(): Flow<List<ChecklistWithItems>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertChecklist(checklist: Checklist)
-
-    @Delete
-    suspend fun deleteChecklist(checklist: Checklist)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertItem(item: ChecklistItem)
-
-    @Update
-    suspend fun updateItem(item: ChecklistItem)
-
-    @Delete
-    suspend fun deleteItem(item: ChecklistItem)
-}

@@ -53,24 +53,6 @@ class VendorConverters {
 }
 
 
-// DAO
-@Dao
-interface VendorDao {
-    @Query("SELECT * FROM vendors ORDER BY name")
-    fun observeVendors(): Flow<List<Vendor>>
-
-    @Query("SELECT * FROM vendors WHERE id = :id")
-    suspend fun findById(id: String): Vendor?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun save(vendor: Vendor)
-
-    @Delete
-    suspend fun delete(vendor: Vendor)
-}
-
-
-
 object DatabaseProvider {
     @Volatile
     private var instance: AppDatabase? = null

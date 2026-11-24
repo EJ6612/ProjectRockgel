@@ -1,27 +1,81 @@
 package dev.ej6612.projectrockgel.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.ej6612.projectrockgel.data.local.AppDatabase
+import androidx.lifecycle.ViewModelProvider
+import dev.ej6612.projectrockgel.data.local.dao.*
+import dev.ej6612.projectrockgel.data.local.entity.VendorChecklistCrossRef
 import dev.ej6612.projectrockgel.model.Vendor
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class VendorsViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = AppDatabase.getDatabase(application).vendorDao()
+class VendorsViewModel(
+    private val vendorDao: VendorDao
+) : ViewModel() {
 
-    val vendors: Flow<List<Vendor>> = dao.observeVendors()
+    // Basic vendor list for a vendor-list screen.
+    val vendors: StateFlow<List<Vendor>> =
+        vendorDao.observeVendors()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptyList()
+            )
 
     fun saveVendor(vendor: Vendor) {
         viewModelScope.launch {
-            dao.save(vendor)
+            vendorDao.save(vendor)
         }
     }
 
     fun deleteVendor(vendor: Vendor) {
         viewModelScope.launch {
-            dao.delete(vendor)
+            vendorDao.delete(vendor)
+        }
+    }
+
+    fun linkVendorToChecklist(
+        vendorId: String,
+        checklistId: String
+    ) {
+        viewModelScope.launch {
+            vendorDao.linkVendorToChecklist(
+                VendorChecklistCrossRef(
+                    vendor_id = vendorId,
+                    checklist_id = checklistId
+                )
+            )
+        }
+    }
+
+    fun unlinkVendorFromChecklist(
+        vendorId: String,
+        checklistId: String
+    ) {
+        viewModelScope.launch {
+            vendorDao.unlinkVendorFromChecklist(
+                vendorId = vendorId,
+                checklistId = checklistId
+            )
         }
     }
 }
+
+
+class VendorsViewModelFactory(
+    private val vendorDao: VendorDao
+) : ViewModelProvider.Factory {
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(VendorsViewModel::class.java)) {
+            return VendorsViewModel(vendorDao) as T
+        }
+
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+

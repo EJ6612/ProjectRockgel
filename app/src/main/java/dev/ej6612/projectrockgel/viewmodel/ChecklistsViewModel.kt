@@ -3,12 +3,12 @@ package dev.ej6612.projectrockgel.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.ViewModelProvider
+import dev.ej6612.projectrockgel.data.local.dao.ChecklistDao
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import dev.ej6612.projectrockgel.model.checklists.Checklist
-import dev.ej6612.projectrockgel.model.checklists.ChecklistDao
 import dev.ej6612.projectrockgel.model.checklists.ChecklistWithItems
 import dev.ej6612.projectrockgel.model.checklists.ChecklistItem
 

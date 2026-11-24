@@ -6,6 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -28,9 +31,12 @@ import dev.ej6612.projectrockgel.ui.theme.ProjectRockgelTheme
 import dev.ej6612.projectrockgel.ui.theme.ThemeMode
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.ej6612.projectrockgel.data.local.AppDatabase
 import dev.ej6612.projectrockgel.viewmodel.ChecklistsViewModel
 import dev.ej6612.projectrockgel.viewmodel.VendorsViewModel
 import dev.ej6612.projectrockgel.ui.screens.CalendarScreen
+import dev.ej6612.projectrockgel.viewmodel.ChecklistsViewModelFactory
+import dev.ej6612.projectrockgel.viewmodel.VendorsViewModelFactory
 
 // Destinations
 private const val ROUTE_VENDORS = "vendors"
@@ -60,12 +66,29 @@ fun AppContent(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit
 ) {
+    // Navigation state.
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val checklistsViewModel: ChecklistsViewModel = viewModel()
-    val vendorsViewModel: VendorsViewModel = viewModel()
-    val calendarViewModel: CalendarViewModel = viewModel()
+
+    // Get the app's one Room database instance.
+    val context = LocalContext.current
+    val database = remember(context.applicationContext) {
+        AppDatabase.getInstance(context.applicationContext)
+    }
+
+    // These ViewModels need factories because they require DAOs.
+    val checklistsViewModel: ChecklistsViewModel = viewModel(
+        factory = remember(database) {
+            ChecklistsViewModelFactory(database.checklistDao())
+        }
+    )
+
+    val vendorsViewModel: VendorsViewModel = viewModel(
+        factory = remember(database) {
+            VendorsViewModelFactory(database.vendorDao())
+        }
+    )
 
     Scaffold(
         bottomBar = {
@@ -92,17 +115,25 @@ fun AppContent(
                             ROUTE_PROFILE,
                             "Profile",
                             Icons.Outlined.Person to Icons.Filled.Person
-                        ),
+                        )
                     )
 
                     items.forEach { (itemRoute, label, icons) ->
                         val isSelected =
-                            currentDestination?.hierarchy?.any { it.route == itemRoute } == true
+                            currentDestination?.hierarchy?.any {
+                                it.route == itemRoute
+                            } == true
+
                         val (unselectedIcon, selectedIcon) = icons
+
                         NavigationBarItem(
                             icon = {
                                 Icon(
-                                    imageVector = if (isSelected) selectedIcon else unselectedIcon,
+                                    imageVector = if (isSelected) {
+                                        selectedIcon
+                                    } else {
+                                        unselectedIcon
+                                    },
                                     contentDescription = null
                                 )
                             },
@@ -110,13 +141,10 @@ fun AppContent(
                             selected = isSelected,
                             onClick = {
                                 navController.navigate(itemRoute) {
-                                    currentDestination?.let { destination ->
-                                        if (destination.hierarchy.any { it.route == navController.graph.startDestinationRoute }) {
-                                            popUpTo(destination.id) {
-                                                saveState = true
-                                            }
-                                        }
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
                                     }
+
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -130,7 +158,8 @@ fun AppContent(
         NavHost(
             navController = navController,
             startDestination = ROUTE_CALENDAR,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) {
             composable(ROUTE_CALENDAR) {
@@ -142,8 +171,13 @@ fun AppContent(
                     viewModel = vendorsViewModel
                 )
             }
+
             composable(ROUTE_CHECKLISTS) {
-                ChecklistsScreen(viewModel = checklistsViewModel, modifier = Modifier) }
+                ChecklistsScreen(
+                    viewModel = checklistsViewModel
+                )
+            }
+
             composable(ROUTE_PROFILE) {
                 ProfileScreen(
                     currentThemeMode = themeMode,
